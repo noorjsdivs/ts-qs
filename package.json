@@ -1,0 +1,74 @@
+{
+  "name": "ts-qs",
+  "version": "1.0.0",
+  "description": "A modern TypeScript query string parser and stringifier with enhanced type safety and additional features",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "esbuild src/index.ts --bundle --platform=node --target=node16 --format=cjs --outfile=dist/index.js",
+    "build:esm": "esbuild src/index.ts --bundle --platform=node --target=node16 --format=esm --outfile=dist/index.esm.js",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "clean": "rm -rf dist",
+    "dev": "npm run build && node dist/index.js",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "querystring",
+    "query",
+    "string",
+    "url",
+    "parse",
+    "stringify",
+    "typescript",
+    "type-safe",
+    "modern",
+    "qs",
+    "uri",
+    "encoding",
+    "decoding"
+  ],
+  "author": {
+    "name": "Noor Mohammad",
+    "url": "https://github.com/noorjsdivs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noorjsdivs/ts-qs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/noorjsdivs/ts-qs/issues"
+  },
+  "homepage": "https://github.com/noorjsdivs/ts-qs#readme",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "esbuild": "^0.19.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
