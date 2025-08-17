@@ -3,13 +3,9 @@ import {
   StringifyConfig,
   StringifyInput,
   QueryValue,
-} from './types';
-import {
-  getEncoder,
-  encode,
-  addCharsetSentinel,
-} from './encoding';
-import { isObject } from './utils';
+} from "./types";
+import { getEncoder, encode, addCharsetSentinel } from "./encoding";
+import { isObject } from "./utils";
 
 /**
  * Stringify an object into a query string
@@ -21,13 +17,13 @@ export function stringify(
   const config = new StringifyConfig(options);
   const opts = config.options;
 
-  if (!input || typeof input !== 'object') {
-    return '';
+  if (!input || typeof input !== "object") {
+    return "";
   }
 
   // Apply filter if specified
   const filtered = applyFilter(input, opts.filter);
-  
+
   // Sort keys if specified
   const keys = Object.keys(filtered);
   if (opts.sort) {
@@ -41,17 +37,11 @@ export function stringify(
   for (const key of keys) {
     const value = filtered[key];
     if (value === undefined) continue;
-    
+
     if (opts.skipNulls && value === null) continue;
 
-    const encodedPairs = stringifyValue(
-      key,
-      value,
-      encoder,
-      opts,
-      []
-    );
-    
+    const encodedPairs = stringifyValue(key, value, encoder, opts, []);
+
     pairs.push(...encodedPairs);
   }
 
@@ -64,7 +54,7 @@ export function stringify(
 
   // Add query prefix if needed
   if (opts.addQueryPrefix && result) {
-    result = '?' + result;
+    result = "?" + result;
   }
 
   return result;
@@ -75,7 +65,7 @@ export function stringify(
  */
 function applyFilter(
   input: StringifyInput,
-  filter: StringifyConfig['options']['filter']
+  filter: StringifyConfig["options"]["filter"]
 ): StringifyInput {
   if (!filter) return input;
 
@@ -91,7 +81,7 @@ function applyFilter(
     return result;
   }
 
-  if (typeof filter === 'function') {
+  if (typeof filter === "function") {
     // Filter function
     const result: StringifyInput = {};
     for (const [key, value] of Object.entries(input)) {
@@ -113,7 +103,7 @@ function stringifyValue(
   key: string,
   value: QueryValue,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options'],
+  opts: StringifyConfig["options"],
   keyPath: string[]
 ): string[] {
   if (value === null) {
@@ -146,12 +136,12 @@ function stringifyValue(
 function stringifyNull(
   key: string,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options']
+  opts: StringifyConfig["options"]
 ): string[] {
   if (opts.strictNullHandling) {
     return [encodeKey(key, encoder, opts)];
   }
-  return [encodeKey(key, encoder, opts) + '='];
+  return [encodeKey(key, encoder, opts) + "="];
 }
 
 /**
@@ -161,11 +151,11 @@ function stringifyPrimitive(
   key: string,
   value: string | number | boolean,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options']
+  opts: StringifyConfig["options"]
 ): string[] {
   const encodedKey = encodeKey(key, encoder, opts);
   const encodedValue = encodeValue(String(value), encoder, opts);
-  return [encodedKey + '=' + encodedValue];
+  return [encodedKey + "=" + encodedValue];
 }
 
 /**
@@ -175,19 +165,19 @@ function stringifyDate(
   key: string,
   value: Date,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options']
+  opts: StringifyConfig["options"]
 ): string[] {
   const encodedKey = encodeKey(key, encoder, opts);
   let dateString: string;
-  
+
   if (opts.serializeDate) {
     dateString = opts.serializeDate(value);
   } else {
     dateString = value.toISOString();
   }
-  
+
   const encodedValue = encodeValue(dateString, encoder, opts);
-  return [encodedKey + '=' + encodedValue];
+  return [encodedKey + "=" + encodedValue];
 }
 
 /**
@@ -197,12 +187,12 @@ function stringifyArray(
   key: string,
   array: QueryValue[],
   encoder: (str: string) => string,
-  opts: StringifyConfig['options'],
+  opts: StringifyConfig["options"],
   keyPath: string[]
 ): string[] {
   if (array.length === 0) {
     if (opts.allowEmptyArrays) {
-      return [encodeKey(key, encoder, opts) + '[]'];
+      return [encodeKey(key, encoder, opts) + "[]"];
     }
     return [];
   }
@@ -215,36 +205,33 @@ function stringifyArray(
 
     let arrayKey: string;
     switch (opts.arrayFormat) {
-      case 'indices':
+      case "indices":
         arrayKey = `${key}[${i}]`;
         break;
-      case 'brackets':
+      case "brackets":
         arrayKey = `${key}[]`;
         break;
-      case 'repeat':
+      case "repeat":
         arrayKey = key;
         break;
-      case 'comma':
+      case "comma":
         // Handle comma format specially
         if (i === 0) {
           const values = array
-            .filter(v => v !== undefined)
-            .map(v => encodeValue(String(v), encoder, opts))
-            .join(',');
-          return [encodeKey(key, encoder, opts) + '=' + values];
+            .filter((v) => v !== undefined)
+            .map((v) => encodeValue(String(v), encoder, opts))
+            .join(encoder(","));
+          return [encodeKey(key, encoder, opts) + "=" + values];
         }
         continue;
       default:
         arrayKey = opts.indices ? `${key}[${i}]` : `${key}[]`;
     }
 
-    const valuePairs = stringifyValue(
-      arrayKey,
-      value,
-      encoder,
-      opts,
-      [...keyPath, key]
-    );
+    const valuePairs = stringifyValue(arrayKey, value, encoder, opts, [
+      ...keyPath,
+      key,
+    ]);
     pairs.push(...valuePairs);
   }
 
@@ -258,7 +245,7 @@ function stringifyObject(
   key: string,
   obj: Record<string, unknown>,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options'],
+  opts: StringifyConfig["options"],
   keyPath: string[]
 ): string[] {
   const pairs: string[] = [];
@@ -271,25 +258,22 @@ function stringifyObject(
   for (const objKey of objKeys) {
     const value = obj[objKey] as QueryValue;
     if (value === undefined) continue;
-    
+
     if (opts.skipNulls && value === null) continue;
 
     let nestedKey: string;
     if (opts.allowDots) {
-      nestedKey = opts.encodeDotInKeys 
-        ? `${key}.${objKey.replace(/\./g, '%2E')}`
+      nestedKey = opts.encodeDotInKeys
+        ? `${key}.${objKey.replace(/\./g, "%2E")}`
         : `${key}.${objKey}`;
     } else {
       nestedKey = `${key}[${objKey}]`;
     }
 
-    const valuePairs = stringifyValue(
-      nestedKey,
-      value,
-      encoder,
-      opts,
-      [...keyPath, key]
-    );
+    const valuePairs = stringifyValue(nestedKey, value, encoder, opts, [
+      ...keyPath,
+      key,
+    ]);
     pairs.push(...valuePairs);
   }
 
@@ -302,12 +286,12 @@ function stringifyObject(
 function encodeKey(
   key: string,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options']
+  opts: StringifyConfig["options"]
 ): string {
   if (!opts.encode) return key;
 
   if (opts.encoder) {
-    return opts.encoder(key, encoder, opts.charset, 'key');
+    return opts.encoder(key, encoder, opts.charset, "key");
   }
 
   if (opts.encodeValuesOnly) {
@@ -323,12 +307,12 @@ function encodeKey(
 function encodeValue(
   value: string,
   encoder: (str: string) => string,
-  opts: StringifyConfig['options']
+  opts: StringifyConfig["options"]
 ): string {
   if (!opts.encode) return value;
 
   if (opts.encoder) {
-    return opts.encoder(value, encoder, opts.charset, 'value');
+    return opts.encoder(value, encoder, opts.charset, "value");
   }
 
   return encode(value, encoder, opts.charset);

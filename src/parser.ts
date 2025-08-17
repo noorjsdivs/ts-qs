@@ -4,14 +4,14 @@ import {
   ParsedQuery,
   QueryValue,
   TsQsError,
-} from './types';
+} from "./types";
 import {
   defaultDecoder,
   decode,
   detectCharset,
   removeCharsetSentinel,
   parseNumericEntities,
-} from './encoding';
+} from "./encoding";
 import {
   isObject,
   createPlainObject,
@@ -22,7 +22,7 @@ import {
   checkLimit,
   splitByDelimiter,
   hasPrototypePollution,
-} from './utils';
+} from "./utils";
 
 /**
  * Parse a query string into an object
@@ -32,14 +32,14 @@ export function parse(input: string, options: ParseOptions = {}): ParsedQuery {
   const opts = config.options;
 
   // Handle empty input
-  if (!input || typeof input !== 'string') {
+  if (!input || typeof input !== "string") {
     return opts.plainObjects ? createPlainObject() : {};
   }
 
   let str = input.trim();
 
   // Remove leading question mark
-  if (opts.ignoreQueryPrefix && str.charAt(0) === '?') {
+  if (opts.ignoreQueryPrefix && str.charAt(0) === "?") {
     str = str.slice(1);
   }
 
@@ -58,20 +58,20 @@ export function parse(input: string, options: ParseOptions = {}): ParsedQuery {
   for (const pair of pairs) {
     // Check parameter limit
     parameterCount++;
-    checkLimit(parameterCount, opts.parameterLimit, 'Parameter', false);
+    checkLimit(parameterCount, opts.parameterLimit, "Parameter", false);
     if (parameterCount > opts.parameterLimit) break;
 
     // Skip empty pairs
     if (!pair) continue;
 
-    const equalIndex = pair.indexOf('=');
+    const equalIndex = pair.indexOf("=");
     let key: string;
-    let value: string;
+    let value: string | null;
 
     if (equalIndex === -1) {
       // No equals sign - handle as key without value
       key = pair;
-      value = opts.strictNullHandling ? '' : '';
+      value = opts.strictNullHandling ? null : "";
     } else {
       key = pair.slice(0, equalIndex);
       value = pair.slice(equalIndex + 1);
@@ -96,14 +96,14 @@ export function parse(input: string, options: ParseOptions = {}): ParsedQuery {
  */
 function decodeKey(
   key: string,
-  opts: ParseConfig['options'],
-  charset: ParseConfig['options']['charset']
+  opts: ParseConfig["options"],
+  charset: ParseConfig["options"]["charset"]
 ): string {
-  if (!key) return '';
+  if (!key) return "";
 
   try {
     let decoded = opts.decoder
-      ? opts.decoder(key, defaultDecoder, charset, 'key')
+      ? opts.decoder(key, defaultDecoder, charset, "key")
       : decode(key, defaultDecoder, charset);
 
     if (opts.interpretNumericEntities) {
@@ -120,17 +120,21 @@ function decodeKey(
  * Decode a value string
  */
 function decodeValue(
-  value: string,
-  opts: ParseConfig['options'],
-  charset: ParseConfig['options']['charset']
+  value: string | null,
+  opts: ParseConfig["options"],
+  charset: ParseConfig["options"]["charset"]
 ): QueryValue {
-  if (value === '') {
-    return opts.strictNullHandling ? null : '';
+  if (value === null) {
+    return null;
+  }
+
+  if (value === "") {
+    return "";
   }
 
   try {
     let decoded = opts.decoder
-      ? opts.decoder(value, defaultDecoder, charset, 'value')
+      ? opts.decoder(value, defaultDecoder, charset, "value")
       : decode(value, defaultDecoder, charset);
 
     if (opts.interpretNumericEntities) {
@@ -156,18 +160,25 @@ function parseKeyValue(
   result: ParsedQuery,
   key: string,
   value: QueryValue,
-  opts: ParseConfig['options']
+  opts: ParseConfig["options"]
 ): void {
   // Handle comma-separated values
-  if (opts.comma && typeof value === 'string' && value.includes(',')) {
-    value = value.split(',').map(v => 
-      autoConvert(v.trim(), opts.parseNumbers, opts.parseBooleans, opts.parseDates)
-    );
+  if (opts.comma && typeof value === "string" && value.includes(",")) {
+    value = value
+      .split(",")
+      .map((v) =>
+        autoConvert(
+          v.trim(),
+          opts.parseNumbers,
+          opts.parseBooleans,
+          opts.parseDates
+        )
+      );
   }
 
   // Parse key path
   const keyPath = parseKeyPath(key, opts);
-  
+
   // Set nested value
   setNestedValue(result, keyPath, value, opts);
 }
@@ -175,17 +186,17 @@ function parseKeyValue(
 /**
  * Parse key into path segments
  */
-function parseKeyPath(key: string, opts: ParseConfig['options']): string[] {
+function parseKeyPath(key: string, opts: ParseConfig["options"]): string[] {
   // Handle dot notation
-  if (opts.allowDots && key.includes('.')) {
+  if (opts.allowDots && key.includes(".")) {
     if (opts.decodeDotInKeys) {
-      key = key.replace(/%2E/g, '.');
+      key = key.replace(/%2E/g, ".");
     }
-    return key.split('.');
+    return key.split(".");
   }
 
   // Handle bracket notation
-  if (key.includes('[')) {
+  if (key.includes("[")) {
     return parseBracketNotation(key);
   }
 
@@ -199,20 +210,23 @@ function setNestedValue(
   obj: ParsedQuery,
   keyPath: string[],
   value: QueryValue,
-  opts: ParseConfig['options'],
+  opts: ParseConfig["options"],
   depth: number = 0
 ): void {
   // Check depth limit
   if (opts.strictDepth && depth > opts.depth) {
     throw new TsQsError(
       `Input depth exceeded depth option of ${opts.depth} and strictDepth is true`,
-      'DEPTH_EXCEEDED'
+      "DEPTH_EXCEEDED"
     );
   }
 
   if (depth > opts.depth) {
     // Convert remaining path to string
-    const remainingKey = keyPath.slice(1).map(k => `[${k}]`).join('');
+    const remainingKey = keyPath
+      .slice(1)
+      .map((k) => `[${k}]`)
+      .join("");
     const finalKey = keyPath[0] + remainingKey;
     handleDuplicateKey(obj, finalKey, value, opts);
     return;
@@ -221,7 +235,7 @@ function setNestedValue(
   if (keyPath.length === 0) return;
 
   const currentKey = keyPath[0];
-  if (!currentKey && currentKey !== '0') return;
+  if (!currentKey && currentKey !== "0") return;
 
   // Check for prototype pollution
   if (!opts.allowPrototypes && hasPrototypePollution(currentKey)) {
@@ -236,7 +250,7 @@ function setNestedValue(
 
   // Create nested object/array
   const nextKey = keyPath[1];
-  const isArrayAccess = (nextKey && isArrayIndex(nextKey)) || nextKey === '';
+  const isArrayAccess = (nextKey && isArrayIndex(nextKey)) || nextKey === "";
 
   if (!obj[currentKey]) {
     if (isArrayAccess && opts.parseArrays) {
@@ -268,13 +282,13 @@ function handleArrayValue(
   key: string,
   remainingPath: string[],
   value: QueryValue,
-  opts: ParseConfig['options'],
+  opts: ParseConfig["options"],
   depth: number
 ): void {
   const arr = obj[key] as unknown[];
   const indexKey = remainingPath[0];
 
-  if (indexKey === '') {
+  if (indexKey === "") {
     // Empty brackets - push to array
     if (remainingPath.length === 1) {
       arr.push(value);
@@ -286,14 +300,20 @@ function handleArrayValue(
   } else if (indexKey && isArrayIndex(indexKey)) {
     // Numeric index
     const index = parseInt(indexKey, 10);
-    
+
     // Check array limit
     if (index > opts.arrayLimit) {
       // Convert to object
       if (!isObject(obj[key])) {
         obj[key] = opts.plainObjects ? createPlainObject() : {};
       }
-      setNestedValue(obj[key] as ParsedQuery, remainingPath, value, opts, depth);
+      setNestedValue(
+        obj[key] as ParsedQuery,
+        remainingPath,
+        value,
+        opts,
+        depth
+      );
       return;
     }
 
@@ -303,7 +323,7 @@ function handleArrayValue(
     }
 
     if (remainingPath.length === 1) {
-      if (opts.allowEmptyArrays && value === '') {
+      if (opts.allowEmptyArrays && value === "") {
         arr[index] = [];
       } else {
         arr[index] = value;
@@ -323,14 +343,14 @@ function handleArrayValue(
   } else {
     // Convert array to object for non-numeric keys
     const objValue = opts.plainObjects ? createPlainObject() : {};
-    
+
     // Copy existing array elements
     for (let i = 0; i < arr.length; i++) {
       if (arr[i] !== undefined) {
         objValue[i.toString()] = arr[i];
       }
     }
-    
+
     obj[key] = objValue;
     setNestedValue(objValue, remainingPath, value, opts, depth);
   }
@@ -343,7 +363,7 @@ function handleDuplicateKey(
   obj: ParsedQuery,
   key: string,
   value: QueryValue,
-  opts: ParseConfig['options']
+  opts: ParseConfig["options"]
 ): void {
   const existing = obj[key];
 
@@ -353,16 +373,16 @@ function handleDuplicateKey(
   }
 
   switch (opts.duplicates) {
-    case 'first':
+    case "first":
       // Keep first value, ignore subsequent ones
       break;
 
-    case 'last':
+    case "last":
       // Replace with last value
       safeSetProperty(obj, key, value, opts.allowPrototypes);
       break;
 
-    case 'combine':
+    case "combine":
     default:
       // Combine into array
       if (Array.isArray(existing)) {
